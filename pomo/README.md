@@ -7,11 +7,12 @@ control it directly. Nothing runs on the Mac in the background.
 ## Setup
 
 The clock must already run AWTRIX NG (see `../firmware/flash-awtrix-ng.sh`)
-and be on your network as `clock.local`. If it has another address, write it
-to `~/.config/pomo/config.json`:
+and be on your network. `clock.local` is the default address; if mDNS does not
+resolve on your network, write the clock's IP to `~/.config/pomo/config.json`
+and give the clock a DHCP reservation in your router so it stays put:
 
 ```json
-{"clock": "http://192.168.1.7"}
+{"clock": "http://192.168.1.NNN"}
 ```
 
 Then:

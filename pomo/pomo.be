@@ -10,7 +10,7 @@
 class Pomo
   var phase, paused, endEpoch, remainMs, cycle, startedEpoch, totalMs
   var label, pct, color
-  var leftLong, rightLong
+  var leftLong, rightLong, selectDown
 
   def init()
     self.load()
@@ -147,6 +147,52 @@ class Pomo
         self.advance(true)
       end
     end
+  end
+
+  # Buttons: a press is taken (return true); the action fires on release unless a long press fired.
+  # leftLong/rightLong: nil = not pressed, false = pressed, true = long fired. selectDown: press seen.
+  def on_button_event(btn, event)
+    var idle = self.phase == "IDLE"
+    if btn == "select"
+      if event == "press"
+        self.selectDown = true
+        return true
+      elif event == "release"
+        if !self.selectDown return false end
+        self.selectDown = false
+        self.apply("toggle", 0)
+        return true
+      end
+      return false
+    end
+    if btn != "left" && btn != "right" return false end
+    var left = btn == "left"
+    if event == "press"
+      if left self.leftLong = false else self.rightLong = false end
+      return true
+    end
+    var state = left ? self.leftLong : self.rightLong
+    if state == nil return false end
+    if event == "long"
+      if left self.leftLong = true else self.rightLong = true end
+      if left
+        if idle self.apply("start", 0) end
+      elif !idle
+        self.apply("stop", 0)
+      end
+    elif event == "release"
+      if left self.leftLong = nil else self.rightLong = nil end
+      if state == false
+        if idle
+          if left rotation.previous() else rotation.next() end
+        elif left
+          self.apply("toggle", 0)
+        else
+          self.apply("skip", 0)
+        end
+      end
+    end
+    return true
   end
 
   def should_show() return true end

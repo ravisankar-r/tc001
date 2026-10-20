@@ -1,0 +1,9 @@
+firmware/*.bin
+firmware/awtrix/
+firmware/awtrix-ng/
+tools/berry-src/
+tools/berry
+__pycache__/
+*.pyc
+.DS_Store
+.superpowers/

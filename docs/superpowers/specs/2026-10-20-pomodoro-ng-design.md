@@ -105,6 +105,21 @@ Only the shown app receives button events. Default left/right switch apps.
 
 ## Decisions
 
+### Verified on hardware (Task 1 probe, 2026-10-20)
+
+- (a) Select: a tap delivers `press` then `release` (~170 ms apart). A hold
+  delivers only `press`; the device menu swallows the rest, so no `release`
+  arrives. Therefore select's action fires on `release`: a tap toggles, a hold
+  never does. Select stays in the button table.
+- (b) Store: `PATCH /data` sent 1.5 s after `store.set()` kept the live value
+  (counter 12 → 13 → restart → 14) and `GET /data` showed it. Outcome A: the
+  command path stays as designed.
+- (c) `rotation.pause()` survived four consumed presses; the probe was still
+  the shown app 10 s later. No re-pause needed after button events. The
+  script also restarts in place after a data PATCH (`on_show` fires again).
+- Left/right `press`/`release` arrive as documented. `long` was not exercised
+  (the hold was 432 ms); Task 10 covers it.
+
 ### Architecture
 
 Two pieces, both in `~/Workspace/tc001/pomo/`:

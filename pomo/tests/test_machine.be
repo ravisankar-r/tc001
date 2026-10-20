@@ -188,3 +188,72 @@ t("pin_after_time_sync", def ()
   p.loop()
   assert(size(calls_of("rotation")) == 2, "pinned only once")
 end)
+
+# --- fixes from the final review ---
+
+t("button_before_time_sync_changes_nothing", def ()
+  fresh()
+  store.data["phase"] = "FOCUS"
+  store.data["endEpoch"] = 1000000 + 900000
+  store.data["totalMs"] = 1500000
+  var p = load_pomo()
+  p.on_button_event("left", "press")
+  p.on_button_event("left", "release")
+  assert(!p.paused, "pause ignored before sync")
+  assert(p.remainMs == 0, "no garbage remainMs")
+  p.on_button_event("right", "press")
+  p.on_button_event("right", "release")
+  assert(p.phase == "FOCUS", "skip ignored before sync")
+  assert(size(calls_of("rotation")) == 0, "no rotation calls before sync")
+end)
+
+t("idle_select_before_time_sync_does_not_start", def ()
+  fresh()
+  var p = load_pomo()
+  p.on_button_event("select", "press")
+  p.on_button_event("select", "release")
+  assert(p.phase == "IDLE", "still idle")
+  assert(!store.data.contains("log"), "nothing logged")
+  p.on_button_event("right", "press")
+  p.on_button_event("right", "release")
+  assert(calls_of("rotation")[-1][1] == "next", "idle navigation still works")
+end)
+
+t("cmd_start_after_stale_phase_starts_fresh", def ()
+  fresh()
+  clock["epoch"] = 1000000
+  store.data["phase"] = "FOCUS"
+  store.data["endEpoch"] = 1000000 - 400000
+  store.data["startedEpoch"] = 1000000 - 1900000
+  store.data["totalMs"] = 1500000
+  store.data["cmd"] = "start"
+  var p = load_pomo()
+  assert(p.phase == "FOCUS", "phase")
+  assert(p.endEpoch == 1000000 + 1500000, "fresh block, not the stale one")
+  assert(store.data["log"][-1]["ok"] == false, "stale block logged as aborted")
+  assert(store.data["cmd"] == "", "cmd consumed")
+end)
+
+t("cmd_pause_on_stale_phase_does_not_freeze", def ()
+  fresh()
+  clock["epoch"] = 1000000
+  store.data["phase"] = "FOCUS"
+  store.data["endEpoch"] = 1000000 - 400000
+  store.data["totalMs"] = 1500000
+  store.data["cmd"] = "pause"
+  var p = load_pomo()
+  assert(p.phase == "IDLE", "stale phase ended, pause had nothing to pause")
+  assert(!p.paused, "not paused")
+end)
+
+t("pause_at_timeup_ignored", def ()
+  fresh()
+  clock["epoch"] = 1000000
+  var p = load_pomo()
+  p.apply("start", 0)
+  clock["epoch"] = p.endEpoch
+  p.apply("pause", 0)
+  assert(!p.paused, "pause in the last instant is ignored")
+  p.loop()
+  assert(p.phase == "SHORT", "phase ends normally")
+end)

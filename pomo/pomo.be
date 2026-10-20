@@ -22,8 +22,20 @@ class Pomo
     self.refresh(epoch_ms())
     self.pinned = false
     if epoch_ms() > 0
+      self.settle(epoch_ms())
       self.take_cmd()
       self.pin()
+    end
+  end
+
+  # End a phase whose time is up (with cue) or long overdue (quietly). Runs before commands.
+  def settle(now)
+    if self.phase != "IDLE" && !self.paused && now >= self.endEpoch
+      if now - self.endEpoch >= 300000
+        self.go_idle()
+      else
+        self.advance(true)
+      end
     end
   end
 
@@ -117,6 +129,7 @@ class Pomo
   end
 
   def apply(cmd, minutes)
+    if epoch_ms() <= 0 return end
     var running = self.phase != "IDLE"
     if cmd == "start"
       if !running
@@ -125,7 +138,7 @@ class Pomo
         self.apply("resume", 0)
       end
     elif cmd == "pause"
-      if running && !self.paused
+      if running && !self.paused && self.endEpoch > epoch_ms()
         self.paused = true
         self.remainMs = self.endEpoch - epoch_ms()
         self.save()
@@ -158,15 +171,9 @@ class Pomo
       self.refresh(now)
       return
     end
+    self.settle(now)
     self.take_cmd()
     self.pin()
-    if self.phase != "IDLE" && !self.paused && now >= self.endEpoch
-      if now - self.endEpoch >= 300000
-        self.go_idle()
-      else
-        self.advance(true)
-      end
-    end
     self.refresh(now)
   end
 

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Thin wrapper so `pomo` works from anywhere.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}"
+exec /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m pomo.cli "$@"

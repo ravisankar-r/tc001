@@ -14,10 +14,22 @@ class Pomo
 
   def init()
     self.load()
-    if self.phase != "IDLE" && epoch_ms() > 0
-      rotation.show()
-      rotation.pause()
+    if epoch_ms() > 0
+      self.take_cmd()
+      if self.phase != "IDLE"
+        rotation.show()
+        rotation.pause()
+      end
     end
+  end
+
+  # Apply a command the CLI left in the store (PATCH /data restarts the script).
+  def take_cmd()
+    var cmd = store.get("cmd", "")
+    if cmd == "" return end
+    self.apply(cmd, store.get("cmdMinutes", 0))
+    store.set("cmd", "")
+    store.set("cmdMinutes", 0)
   end
 
   def load()
@@ -127,6 +139,7 @@ class Pomo
   def loop()
     var now = epoch_ms()
     if now <= 0 return end
+    self.take_cmd()
     if self.phase != "IDLE" && !self.paused && now >= self.endEpoch
       if now - self.endEpoch >= 300000
         self.go_idle()

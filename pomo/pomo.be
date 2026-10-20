@@ -10,10 +10,15 @@
 class Pomo
   var phase, paused, endEpoch, remainMs, cycle, startedEpoch, totalMs
   var label, pct, color
+  var cueBreak, cueRest, cueFocus
   var leftLong, rightLong, selectDown
 
   def init()
     self.load()
+    self.cueBreak = self.make_cue("BREAK", "#00C8B4", "tobreak:d=8,o=5,b=180:e,g,b")
+    self.cueRest = self.make_cue("REST", "#00C8B4", "torest:d=8,o=5,b=140:e,g,b,4e6")
+    self.cueFocus = self.make_cue("FOCUS", "#FF8C00", "tofocus:d=8,o=5,b=180:b,g,e")
+    self.refresh(epoch_ms())
     if epoch_ms() > 0
       self.take_cmd()
       if self.phase != "IDLE"
@@ -81,11 +86,14 @@ class Pomo
       if self.cycle >= store.get("every", 4)
         self.cycle = 0
         self.enter("LONG", store.get("longBreak", 15))
+        if withCue notify(self.cueRest) end
       else
         self.enter("SHORT", store.get("shortBreak", 5))
+        if withCue notify(self.cueBreak) end
       end
     else
       self.enter("FOCUS", store.get("focus", 25))
+      if withCue notify(self.cueFocus) end
     end
   end
 
@@ -138,7 +146,10 @@ class Pomo
 
   def loop()
     var now = epoch_ms()
-    if now <= 0 return end
+    if now <= 0
+      self.refresh(now)
+      return
+    end
     self.take_cmd()
     if self.phase != "IDLE" && !self.paused && now >= self.endEpoch
       if now - self.endEpoch >= 300000
@@ -147,6 +158,7 @@ class Pomo
         self.advance(true)
       end
     end
+    self.refresh(now)
   end
 
   # Buttons: a press is taken (return true); the action fires on release unless a long press fired.
@@ -193,6 +205,47 @@ class Pomo
       end
     end
     return true
+  end
+
+  def make_cue(txt, hex, melody)
+    var m = {"text": txt, "textColor": hex, "durationMs": 4000, "scroll": {"mode": "static"}}
+    if store.get("sound", true) m["sound"] = {"rtttl": melody} end
+    return m
+  end
+
+  # Rebuild what draw() shows. Called once a second from loop(), never from draw().
+  def refresh(now)
+    if self.phase == "IDLE"
+      self.label = "POMO"
+      self.pct = -1
+      self.color = 0xFF8C00
+      return
+    end
+    self.color = self.phase == "FOCUS" ? 0xFF8C00 : 0x00C8B4
+    if now <= 0
+      self.label = "--:--"
+      self.pct = -1
+      return
+    end
+    var rem = self.paused ? self.remainMs : self.endEpoch - now
+    if rem < 0 rem = 0 end
+    var secs = rem / 1000
+    self.label = format("%02d:%02d", secs / 60, secs % 60)
+    self.pct = self.totalMs > 0 ? rem * 100 / self.totalMs : 0
+  end
+
+  def draw()
+    clear()
+    if self.phase == "IDLE"
+      font("small")
+      text((32 - text_ink_width(self.label)) / 2, 6, self.label, self.color)
+      return
+    end
+    font("large")
+    if !self.paused || (now_ms() / 600) % 2 == 0
+      text((32 - text_ink_width(self.label)) / 2, 6, self.label, self.color)
+    end
+    if self.pct >= 0 progress(self.pct, self.color, 0x202020) end
   end
 
   def should_show() return true end

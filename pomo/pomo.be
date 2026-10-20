@@ -12,6 +12,7 @@ class Pomo
   var label, pct, color
   var cueBreak, cueRest, cueFocus
   var leftLong, rightLong, selectDown
+  var pinned   # rotation is parked on this app for the running phase
 
   def init()
     self.load()
@@ -19,13 +20,19 @@ class Pomo
     self.cueRest = self.make_cue("REST", "#00C8B4", "torest:d=8,o=5,b=140:e,g,b,4e6")
     self.cueFocus = self.make_cue("FOCUS", "#FF8C00", "tofocus:d=8,o=5,b=180:b,g,e")
     self.refresh(epoch_ms())
+    self.pinned = false
     if epoch_ms() > 0
       self.take_cmd()
-      if self.phase != "IDLE"
-        rotation.show()
-        rotation.pause()
-      end
+      self.pin()
     end
+  end
+
+  # Park the rotation on this app while a phase runs (once per phase).
+  def pin()
+    if self.phase == "IDLE" || self.pinned return end
+    rotation.show()
+    rotation.pause()
+    self.pinned = true
   end
 
   # Apply a command the CLI left in the store (PATCH /data restarts the script).
@@ -74,8 +81,8 @@ class Pomo
     self.remainMs = 0
     self.paused = false
     self.save()
-    rotation.show()
-    rotation.pause()
+    self.pinned = false
+    self.pin()
   end
 
   # Move to the next phase. withCue = the phase ended on its own (not skipped).
@@ -105,6 +112,7 @@ class Pomo
     self.endEpoch = 0
     self.remainMs = 0
     self.save()
+    self.pinned = false
     rotation.resume()
   end
 
@@ -151,6 +159,7 @@ class Pomo
       return
     end
     self.take_cmd()
+    self.pin()
     if self.phase != "IDLE" && !self.paused && now >= self.endEpoch
       if now - self.endEpoch >= 300000
         self.go_idle()

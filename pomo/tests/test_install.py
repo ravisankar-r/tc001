@@ -32,6 +32,12 @@ class InstallTests(unittest.TestCase):
                          {"order": ["Time", "pomo", "Date", "Temperature"], "disabled": ["Battery"]})
         self.assertIn("installed pomo (after Time in rotation)", self.out.getvalue())
 
+    def test_install_without_slots_keeps_list_order(self):
+        for a in self.fake.apps:
+            a["slot"] = None
+        self.assertEqual(install(self.client, out=self.out, err=self.err), 0)
+        self.assertEqual(self.fake.order["order"], ["Time", "pomo", "Date", "Temperature"])
+
     def test_install_compile_error(self):
         self.fake.script_error = {"message": "syntax_error: x", "line": 12}
         self.assertEqual(install(self.client, out=self.out, err=self.err), 1)

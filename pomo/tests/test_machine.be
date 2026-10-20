@@ -172,3 +172,19 @@ t("restore_from_store", def ()
   var r = calls_of("rotation")
   assert(size(r) == 2 && r[0][1] == "show" && r[1][1] == "pause", "init re-pauses")
 end)
+
+t("pin_after_time_sync", def ()
+  fresh()
+  store.data["phase"] = "FOCUS"
+  store.data["endEpoch"] = 1000000 + 900000
+  store.data["totalMs"] = 1500000
+  var p = load_pomo()
+  p.loop()
+  assert(size(calls_of("rotation")) == 0, "nothing while no time")
+  clock["epoch"] = 1000000
+  p.loop()
+  var r = calls_of("rotation")
+  assert(size(r) == 2 && r[0][1] == "show" && r[1][1] == "pause", "pinned on first valid tick")
+  p.loop()
+  assert(size(calls_of("rotation")) == 2, "pinned only once")
+end)

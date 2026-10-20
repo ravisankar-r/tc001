@@ -17,7 +17,10 @@ def install(client: ClockClient, source_path: Path = SOURCE_PATH, out=sys.stdout
         err.write("install failed: %s%s\n" % (message, where))
         return 1
     apps = client.get_apps()
-    in_loop = sorted((a for a in apps if a.get("inLoop") and a["name"] != APP), key=lambda a: a.get("slot", 0))
+    # The clock lists apps in rotation order; sort by slot only when it reports one.
+    in_loop = [a for a in apps if a.get("inLoop") and a["name"] != APP]
+    if all(isinstance(a.get("slot"), int) for a in in_loop):
+        in_loop.sort(key=lambda a: a["slot"])
     order = [a["name"] for a in in_loop]
     index = order.index("Time") + 1 if "Time" in order else len(order)
     order.insert(index, APP)

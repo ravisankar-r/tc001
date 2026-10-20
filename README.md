@@ -31,6 +31,7 @@ firmware/   flashing scripts and (gitignored) images; see below
 pomo/       the pomodoro timer: Berry script for the clock + `pomo` CLI for the Mac (its own README)
 docs/superpowers/specs/   design documents (the NG one is current; the AWTRIX 3 one is superseded)
 docs/superpowers/plans/   the implementation plan that was executed
+docs/ideas.md             parked ideas for what else to put on the clock
 probe/      throwaway Berry script used to verify button, store and rotation behaviour
 tools/      build-berry.sh builds the reference Berry interpreter used by the tests
 ```
